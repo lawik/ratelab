@@ -1,0 +1,4 @@
+%{
+  "ex_united": {:hex, :ex_united, "0.1.5", "48941f1ad77414b7d41e56b39fa82f0205cec2b99c48471fc2c4116cb21962c4", [:mix], [], "hexpm", "4aaec070d88b083c5de324922754609eb369f1643a841bb3b057c06fb152544e"},
+  "poolboy": {:hex, :poolboy, "1.5.2", "392b007a1693a64540cead79830443abf5762f5d30cf50bc95cb2c1aaafa006b", [:rebar3], [], "hexpm", "dad79704ce5440f3d5a3681c8590b9dc25d1a561e8f5a9c995281012860901e3"},
+}
