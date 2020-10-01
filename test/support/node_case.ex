@@ -12,7 +12,7 @@ defmodule Ratelab.NodeCase do
   # This has to live in a compiled module or you'll have undefined function errors on remote nodes
   def attempt_at(node, identifier, delay, options) do
     call_node(node, fn ->
-      Ratelab.LimiterSupervisor.attempt(
+      Ratelab.attempt(
         identifier,
         fn _context ->
           :timer.sleep(delay)

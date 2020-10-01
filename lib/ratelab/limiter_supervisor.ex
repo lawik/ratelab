@@ -2,6 +2,7 @@ defmodule Ratelab.LimiterSupervisor do
   use DynamicSupervisor
 
   @max_concurrency 3
+  @default_timeout 2000
 
   def start_link(arg) do
     DynamicSupervisor.start_link(__MODULE__, arg, name: __MODULE__)
@@ -34,7 +35,7 @@ defmodule Ratelab.LimiterSupervisor do
     end)
   end
 
-  def attempt(identifier, callback, options) do
+  def attempt(identifier, callback, options \\ [timeout: @default_timeout]) do
     name = get_name(identifier)
 
     case :global.whereis_name(name) do

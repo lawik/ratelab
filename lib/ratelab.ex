@@ -1,18 +1,9 @@
 defmodule Ratelab do
   @moduledoc """
-  Documentation for `Ratelab`.
+  # Examples
+  iex> {:ok, :response} = Ratelab.attempt("my-org-1", fn _context -> :response end, timeout: 1000)
   """
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Ratelab.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
+  def attempt(identifier, callback, options),
+    do: Ratelab.LimiterSupervisor.attempt(identifier, callback, options)
 end
