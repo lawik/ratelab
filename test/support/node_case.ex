@@ -15,7 +15,8 @@ defmodule Ratelab.NodeCase do
       Ratelab.LimiterSupervisor.attempt(
         identifier,
         fn _context ->
-          GenServer.call(Ratelab.TheService, {:request, delay})
+          :timer.sleep(delay)
+          :response
         end,
         options
       )

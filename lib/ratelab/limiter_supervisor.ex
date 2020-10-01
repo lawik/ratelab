@@ -40,10 +40,10 @@ defmodule Ratelab.LimiterSupervisor do
     case :global.whereis_name(name) do
       :undefined ->
         {:ok, pid} = start_limiter(identifier)
-        GenServer.call(pid, {:attempt, callback, options})
+        GenServer.call(pid, {:attempt, callback, options}, :infinity)
 
       pid when is_pid(pid) ->
-        GenServer.call(pid, {:attempt, callback, options})
+        GenServer.call(pid, {:attempt, callback, options}, :infinity)
     end
   end
 

@@ -7,10 +7,7 @@ defmodule Ratelab.Application do
 
   def start(_type, _args) do
     children = [
-      {Ratelab.LimiterSupervisor, nil},
-      {Ratelab.TheService, nil}
-      # Starts a worker by calling: Ratelab.Worker.start_link(arg)
-      # {Ratelab.Worker, arg}
+      {Ratelab.LimiterSupervisor, nil}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

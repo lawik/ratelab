@@ -2,6 +2,7 @@ defmodule Ratelab.Limiter do
   use GenServer, restart: :transient
 
   @default_timeout 10000
+  @minute_limit 6
 
   def start_link(opts) do
     {args, opts} = Keyword.pop!(opts, :args)
@@ -20,6 +21,8 @@ defmodule Ratelab.Limiter do
 
     state = %{
       data: data,
+      minute: get_current_minute(),
+      max_concurrency: max_concurrency,
       request_count: 0,
       pool: pid
     }
@@ -28,26 +31,67 @@ defmodule Ratelab.Limiter do
   end
 
   @impl GenServer
-  def handle_call({:attempt, callback, options}, from, %{pool: pool, data: data} = state) do
+  def handle_call(
+        {:attempt, callback, options},
+        from,
+        %{pool: pool, data: data} = state
+      ) do
     timeout = options[:timeout] || @default_timeout
+    %{request_count: new_count} = state = count_request(state)
 
-    # We return :noreply and use an explicit GenServer.reply to allow the limiter to move on
-    Task.start(fn ->
-      case :poolboy.checkout(pool, false, timeout) do
-        :full ->
-          GenServer.reply(from, {:rate_limited, :no_slots_available})
+    if new_count > @minute_limit do
+      {:reply, {:rate_limited, :requests_over_time, {:minute, @minute_limit}}, state}
+    else
+      # We return :noreply and use an explicit GenServer.reply to allow the limiter to move on with other work
+      # while this keeps happening
 
-        worker_pid ->
-          wrapped_function = fn ->
-            callback.(data)
-          end
+      Task.start(fn ->
+        try do
+          :poolboy.transaction(
+            pool,
+            fn worker_pid ->
+              wrapped_function = fn ->
+                callback.(data)
+              end
 
-          result = GenServer.call(worker_pid, {:work, wrapped_function})
-          :poolboy.checkin(pool, worker_pid)
-          GenServer.reply(from, {:ok, result})
+              result = GenServer.call(worker_pid, {:work, wrapped_function})
+              GenServer.reply(from, {:ok, result})
+            end,
+            timeout
+          )
+        catch
+          :exit, {:timeout, {:gen_server, :call, [_, {:checkout, _, _}, _]}} ->
+            GenServer.reply(
+              from,
+              {:rate_limited, :concurrent_requests, {:limit, state.max_concurrency}}
+            )
+        end
+      end)
+
+      {:noreply, state}
+    end
+  end
+
+  defp count_request(%{minute: old_minute} = state) do
+    current_minute = get_current_minute()
+
+    %{request_count: count} =
+      state =
+      if old_minute != current_minute do
+        %{state | minute: current_minute, request_count: 0}
+      else
+        state
       end
-    end)
 
-    {:noreply, state}
+    count = count + 1
+    %{state | request_count: count}
+  end
+
+  defp get_current_minute do
+    "Etc/UTC"
+    |> DateTime.now!()
+    |> DateTime.truncate(:second)
+    |> Map.put(:second, 0)
+    |> DateTime.to_iso8601()
   end
 end

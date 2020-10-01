@@ -3,6 +3,7 @@ defmodule RatelabTest do
   doctest Ratelab
 
   @known_slots 3
+  @request_minute_limit 6
   @node1 :"node1@127.0.0.1"
   @node2 :"node2@127.0.0.1"
   @response_delay 1000
@@ -47,7 +48,43 @@ defmodule RatelabTest do
         )
       end)
 
-    assert {_, {:rate_limited, :no_slots_available}} = Task.await(expect_rate_limit)
+    assert {_, {:rate_limited, :concurrent_requests, {:limit, @known_slots}}} =
+             Task.await(expect_rate_limit)
+
+    Enum.each(expect_oks, fn t ->
+      assert {_, {:ok, :response}} = Task.await(t)
+    end)
+  end
+
+  test "requests beyond minute limit" do
+    expect_oks =
+      Enum.map(1..@request_minute_limit, fn _ ->
+        Task.async(fn ->
+          attempt_at(
+            @node1,
+            "minute-limit",
+            # Very quick response
+            1,
+            timeout: 1000 * @request_minute_limit
+          )
+        end)
+      end)
+
+    :timer.sleep(300)
+
+    expect_rate_limit =
+      Task.async(fn ->
+        attempt_at(
+          @node2,
+          "minute-limit",
+          # Very quick response
+          1,
+          timeout: 10000
+        )
+      end)
+
+    assert {_, {:rate_limited, :requests_over_time, {:minute, @request_minute_limit}}} =
+             Task.await(expect_rate_limit)
 
     Enum.each(expect_oks, fn t ->
       assert {_, {:ok, :response}} = Task.await(t)
