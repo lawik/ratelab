@@ -1,6 +1,5 @@
 defmodule Ratelab.Cluster do
   # Taken from Phoenix.PubSub tests
-  @timeout 1000
   def spawn(nodes) do
     # Turn node into a distributed node with the given long name
     :net_kernel.start([:"primary@127.0.0.1"])
@@ -19,20 +18,7 @@ defmodule Ratelab.Cluster do
     add_code_paths(node)
     transfer_configuration(node)
     ensure_applications_started(node)
-    # start_limiter_supervisor(node) |> IO.inspect(label: "spawned supervisor")
     {:ok, node}
-  end
-
-  defp start_limiter_supervisor(node) do
-    args = [
-      [
-        {Ratelab.LimiterSupervisor, nil},
-        {Ratelab.TheService, nil}
-      ],
-      [strategy: :one_for_one]
-    ]
-
-    rpc(node, Supervisor, :start_link, args)
   end
 
   defp rpc(node, module, function, args) do
